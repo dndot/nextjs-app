@@ -1,7 +1,7 @@
 pipeline {
     agent any
 environment {
-        DOCKER_IMAGE = 'adijaiswal/adservice:latest'
+        DOCKER_IMAGE = 'dndot/adservice:latest'
     }
     stages {
         stage('Build Docker Image') {
