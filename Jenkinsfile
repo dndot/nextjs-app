@@ -1,6 +1,6 @@
 pipeline {
     agent any
-environment {
+    environment {
         DOCKER_IMAGE = 'dndot/adservice:latest'
     }
     stages {
@@ -22,12 +22,22 @@ environment {
                 }
             }
         }
-    }
         stage('Deploy to Production') {
             steps {
-                sh 'docker run -d -p 3000:3000 --name nextjs-app $DOCKER_IMAGE'
+                script {
+                    sh '''
+                    docker stop nextjs-app || true
+                    docker rm nextjs-app || true
+                    docker pull $DOCKER_IMAGE
+                    docker run -d -p 3000:3000 --name nextjs-app $DOCKER_IMAGE
+                    '''
+                }
             }
         }
     }
+    post {
+        always {
+            sh 'docker logout'
+        }
+    }
 }
-
