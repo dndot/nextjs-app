@@ -1,43 +1,34 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = 'dndot/adservice:latest'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        IMAGE_NAME = 'dndot/nextjs-app'
     }
+
     stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: 'staging', url: 'https://github.com/dndot/nextjs-app.git'
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh "docker build -t $DOCKER_IMAGE ."
+                    docker.build("${IMAGE_NAME}:latest")
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
+                        docker.image("${IMAGE_NAME}:latest").push()
                     }
                 }
             }
-        }
-        stage('Push Image to Docker Hub') {
-            steps {
-                script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh "docker push $DOCKER_IMAGE"
-                    }
-                }
-            }
-        }
-        stage('Deploy to Production') {
-            steps {
-                script {
-                    sh '''
-                    docker stop nextjs-app || true
-                    docker rm nextjs-app || true
-                    docker pull $DOCKER_IMAGE
-                    docker run -d -p 3000:3000 --name nextjs-app $DOCKER_IMAGE
-                    '''
-                }
-            }
-        }
-    }
-    post {
-        always {
-            sh 'docker logout'
         }
     }
 }
